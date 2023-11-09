@@ -18,8 +18,7 @@ from semantic_sam.utils import box_ops
 metadata = MetadataCatalog.get('coco_2017_train_panoptic')
 
 def interactive_infer_image_box(model, image,all_classes,all_parts, thresh,text_size,hole_scale,island_scale,semantic, refimg=None, reftxt=None, audio_pth=None, video_pth=None):
-    t = []
-    t.append(transforms.Resize(int(text_size), interpolation=Image.BICUBIC))
+    t = [transforms.Resize(int(text_size), interpolation=Image.BICUBIC)]
     transform1 = transforms.Compose(t)
     image_ori = transform1(image['image'])
     mask_ori = transform1(image['mask'])
@@ -85,7 +84,7 @@ def interactive_infer_image_box(model, image,all_classes,all_parts, thresh,text_
             if np.logical_and(mask,m).sum()/np.logical_or(mask,m).sum()>0.95:
                 conti=True
                 break
-        if i == len(pred_masks_poses[ids])-1 and mask_ls==[]:
+        if i == len(pred_masks_poses[ids]) - 1 and not mask_ls:
             conti=False
         if conti:
             continue
@@ -109,7 +108,7 @@ def interactive_infer_image_box(model, image,all_classes,all_parts, thresh,text_
         # res[point_y0:point_y1,point_x0:point_x1,1]=0
         # res[point_y0:point_y1,point_x0:point_x1,2]=0
         reses.append(Image.fromarray(res))
-        text_res=text_res+';'+out_txt
+        text_res = f'{text_res};{out_txt}'
     ids=list(torch.argsort(torch.tensor(areas),descending=False))
     ids = [int(i) for i in ids]
 
@@ -126,19 +125,19 @@ def remove_small_regions(
     """
     import cv2  # type: ignore
 
-    assert mode in ["holes", "islands"]
+    assert mode in {"holes", "islands"}
     correct_holes = mode == "holes"
     working_mask = (correct_holes ^ mask).astype(np.uint8)
     n_labels, regions, stats, _ = cv2.connectedComponentsWithStats(working_mask, 8)
     sizes = stats[:, -1][1:]  # Row 0 is background label
     small_regions = [i + 1 for i, s in enumerate(sizes) if s < area_thresh]
-    if len(small_regions) == 0:
+    if not small_regions:
         return mask, False
     fill_labels = [0] + small_regions
     if not correct_holes:
         fill_labels = [i for i in range(n_labels) if i not in fill_labels]
         # If every region is below threshold, keep largest
-        if len(fill_labels) == 0:
+        if not fill_labels:
             fill_labels = [int(np.argmax(sizes)) + 1]
     mask = np.isin(regions, fill_labels)
     return mask, True

@@ -15,8 +15,7 @@ from detectron2.data import MetadataCatalog
 metadata = MetadataCatalog.get('coco_2017_train_panoptic')
 
 def interactive_infer_image(model, image,all_classes,all_parts, thresh,text_size,hole_scale,island_scale,semantic, refimg=None, reftxt=None, audio_pth=None, video_pth=None, label_mode='1', alpha=0.1, anno_mode=['Mask']):
-    t = []
-    t.append(transforms.Resize(int(text_size), interpolation=Image.BICUBIC))
+    t = [transforms.Resize(int(text_size), interpolation=Image.BICUBIC)]
     transform1 = transforms.Compose(t)
     image_ori = transform1(image['image'])
     mask_ori = transform1(image['mask'])
@@ -74,7 +73,7 @@ def interactive_infer_image(model, image,all_classes,all_parts, thresh,text_size
             if np.logical_and(mask,m).sum()/np.logical_or(mask,m).sum()>0.95:
                 conti=True
                 break
-        if i == len(pred_masks_poses[ids])-1 and mask_ls==[]:
+        if i == len(pred_masks_poses[ids]) - 1 and not mask_ls:
             conti=False
         if conti:
             continue
@@ -98,7 +97,7 @@ def interactive_infer_image(model, image,all_classes,all_parts, thresh,text_size
         # res[point_y0:point_y1,point_x0:point_x1,1]=0
         # res[point_y0:point_y1,point_x0:point_x1,2]=0
         reses.append(Image.fromarray(res))
-        text_res=text_res+';'+out_txt
+        text_res = f'{text_res};{out_txt}'
     ids=list(torch.argsort(torch.tensor(areas),descending=False))
     ids = [int(i) for i in ids]
 
@@ -107,8 +106,7 @@ def interactive_infer_image(model, image,all_classes,all_parts, thresh,text_size
     return reses,[reses[i] for i in ids]
 
 def interactive_infer_image_3l(model, image,all_classes,all_parts, thresh,text_size,hole_scale,island_scale,semantic, refimg=None, reftxt=None, audio_pth=None, video_pth=None):
-    t = []
-    t.append(transforms.Resize(int(text_size), interpolation=Image.BICUBIC))
+    t = [transforms.Resize(int(text_size), interpolation=Image.BICUBIC)]
     transform1 = transforms.Compose(t)
     image_ori = transform1(image['image'])
     mask_ori = transform1(image['mask'])
@@ -172,7 +170,7 @@ def interactive_infer_image_3l(model, image,all_classes,all_parts, thresh,text_s
             if np.logical_and(mask,m).sum()/np.logical_or(mask,m).sum()>0.95:
                 conti=True
                 break
-        if i == len(pred_masks_poses[ids])-1 and mask_ls==[]:
+        if i == len(pred_masks_poses[ids]) - 1 and not mask_ls:
             conti=False
         if conti:
             continue
@@ -195,7 +193,7 @@ def interactive_infer_image_3l(model, image,all_classes,all_parts, thresh,text_s
         res[point_y0:point_y1,point_x0:point_x1,1]=0
         res[point_y0:point_y1,point_x0:point_x1,2]=0
         reses.append(Image.fromarray(res))
-        text_res=text_res+';'+out_txt
+        text_res = f'{text_res};{out_txt}'
     ids=list(torch.argsort(torch.tensor(areas),descending=False))
     ids = [int(i) for i in ids]
 

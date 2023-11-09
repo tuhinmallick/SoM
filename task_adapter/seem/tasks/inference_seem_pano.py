@@ -39,8 +39,7 @@ from segment_anything.utils.amg import (
 
 
 def inference_seem_pano(model, image, text_size, label_mode='1', alpha=0.1, anno_mode=['Mask']):
-    t = []
-    t.append(transforms.Resize(int(text_size), interpolation=Image.BICUBIC))
+    t = [transforms.Resize(int(text_size), interpolation=Image.BICUBIC)]
     transform1 = transforms.Compose(t)
     image_ori = transform1(image)
 
@@ -60,9 +59,7 @@ def inference_seem_pano(model, image, text_size, label_mode='1', alpha=0.1, anno
     pano_mask = outputs[0]['panoptic_seg'][0]
     pano_info = outputs[0]['panoptic_seg'][1]
 
-    masks = []
-    for seg_info in pano_info:
-        masks += [pano_mask == seg_info['id']]
+    masks = [pano_mask == seg_info['id'] for seg_info in pano_info]
     masks = torch.stack(masks, dim=0)
     iou_preds = torch.ones(masks.shape[0], dtype=torch.float32)
     points = torch.zeros((masks.shape[0], 2), dtype=torch.float32)
@@ -102,16 +99,14 @@ def inference_seem_pano(model, image, text_size, label_mode='1', alpha=0.1, anno
     visual = Visualizer(image_ori, metadata=metadata)
     # create a full zero image as the image_orig
     sorted_anns = sorted(outputs, key=(lambda x: x['area']), reverse=True)
-    label = 1
-    mask_map = np.zeros(image_ori.shape, dtype=np.uint8)    
-    for i, ann in enumerate(sorted_anns):
+    mask_map = np.zeros(image_ori.shape, dtype=np.uint8)
+    for label, ann in enumerate(sorted_anns, start=1):
         mask = ann['segmentation']
         color_mask = np.random.random((1, 3)).tolist()[0]
         # color_mask = [int(c*255) for c in color_mask]
         demo = visual.draw_binary_mask_with_number(mask, text=str(label), label_mode=label_mode, alpha=alpha, anno_mode=anno_mode)
         # assign the mask to the mask_map
         mask_map[mask == 1] = label
-        label += 1
     im = demo.get_image()
     # fig=plt.figure(figsize=(10, 10))
     # plt.imshow(image_ori)
@@ -130,19 +125,19 @@ def remove_small_regions(
     """
     import cv2  # type: ignore
 
-    assert mode in ["holes", "islands"]
+    assert mode in {"holes", "islands"}
     correct_holes = mode == "holes"
     working_mask = (correct_holes ^ mask).astype(np.uint8)
     n_labels, regions, stats, _ = cv2.connectedComponentsWithStats(working_mask, 8)
     sizes = stats[:, -1][1:]  # Row 0 is background label
     small_regions = [i + 1 for i, s in enumerate(sizes) if s < area_thresh]
-    if len(small_regions) == 0:
+    if not small_regions:
         return mask, False
     fill_labels = [0] + small_regions
     if not correct_holes:
         fill_labels = [i for i in range(n_labels) if i not in fill_labels]
         # If every region is below threshold, keep largest
-        if len(fill_labels) == 0:
+        if not fill_labels:
             fill_labels = [int(np.argmax(sizes)) + 1]
     mask = np.isin(regions, fill_labels)
     return mask, True
