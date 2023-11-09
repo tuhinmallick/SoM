@@ -62,47 +62,40 @@ with torch.no_grad():
 
 @torch.no_grad()
 def inference(image, slider, mode, alpha, label_mode, anno_mode, *args, **kwargs):
-    if slider < 1.5:
-        model_name = 'seem'
-    elif slider > 2.5:
-        model_name = 'sam'
-    else:
-        if mode == 'Automatic':
-            model_name = 'semantic-sam'
-            if slider < 1.5 + 0.14:                
-                level = [1]
-            elif slider < 1.5 + 0.28:
-                level = [2]
-            elif slider < 1.5 + 0.42:
-                level = [3]
-            elif slider < 1.5 + 0.56:
-                level = [4]
-            elif slider < 1.5 + 0.70:
-                level = [5]
-            elif slider < 1.5 + 0.84:
-                level = [6]
-            else:
-                level = [6, 1, 2, 3, 4, 5]
+    if slider >= 1.5 and slider <= 2.5 and mode == 'Automatic':
+        model_name = 'semantic-sam'
+        if slider < 1.5 + 0.14:                
+            level = [1]
+        elif slider < 1.5 + 0.28:
+            level = [2]
+        elif slider < 1.5 + 0.42:
+            level = [3]
+        elif slider < 1.5 + 0.56:
+            level = [4]
+        elif slider < 1.5 + 0.70:
+            level = [5]
+        elif slider < 1.5 + 0.84:
+            level = [6]
         else:
-            model_name = 'sam'
+            level = [6, 1, 2, 3, 4, 5]
+    elif slider >= 1.5 and slider <= 2.5 or slider >= 1.5:
+        model_name = 'sam'
 
 
-    if label_mode == 'Alphabet':
-        label_mode = 'a'
     else:
-        label_mode = '1'
-
+        model_name = 'seem'
+    label_mode = 'a' if label_mode == 'Alphabet' else '1'
     text_size, hole_scale, island_scale=640,100,100
     text, text_part, text_thresh = '','','0.0'
     with torch.autocast(device_type='cuda', dtype=torch.float16):
-        semantic=False
-
         if mode == "Interactive":
             labeled_array, num_features = label(np.asarray(image['mask'].convert('L')))
             spatial_masks = torch.stack([torch.from_numpy(labeled_array == i+1) for i in range(num_features)])
 
         if model_name == 'semantic-sam':
             model = model_semsam
+            semantic=False
+
             output, mask = inference_semsam_m2m_auto(model, image['image'], level, text, text_part, text_thresh, text_size, hole_scale, island_scale, semantic, label_mode=label_mode, alpha=alpha, anno_mode=anno_mode, *args, **kwargs)
 
         elif model_name == 'sam':

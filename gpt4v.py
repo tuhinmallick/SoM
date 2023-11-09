@@ -32,38 +32,30 @@ def prepare_inputs(message, image):
     # base64_image = encode_image(image_path)
     base64_image = encode_image_from_pil(image)
 
-    payload = {
+    return {
         "model": "gpt-4-vision-preview",
         "messages": [
-        {
-            "role": "system",
-            "content": [
-                metaprompt
-            ]
-        }, 
-        {
-            "role": "user",
-            "content": [
+            {"role": "system", "content": [metaprompt]},
             {
-                "type": "text",
-                "text": message, 
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": message,
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}"
+                        },
+                    },
+                ],
             },
-            {
-                "type": "image_url",
-                "image_url": {
-                "url": f"data:image/jpeg;base64,{base64_image}"
-                }
-            }
-            ]
-        }
         ],
-        "max_tokens": 800
+        "max_tokens": 800,
     }
-
-    return payload
 
 def request_gpt4v(message, image):
     payload = prepare_inputs(message, image)
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-    res = response.json()['choices'][0]['message']['content']
-    return res
+    return response.json()['choices'][0]['message']['content']
